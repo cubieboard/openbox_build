@@ -17,9 +17,11 @@ endif
 # The filter part means "only eval the copy-one-file rule if this
 # src:dest pair is the first one to match the same dest"
 #$(1): the src:dest pair
+#define check-product-copy-files
+#$(if $(filter %.apk, $(1)),$(error \
+#    Prebuilt apk found in PRODUCT_COPY_FILES: $(1), use BUILD_PREBUILT instead!))
+#endef
 define check-product-copy-files
-$(if $(filter %.apk, $(1)),$(error \
-    Prebuilt apk found in PRODUCT_COPY_FILES: $(1), use BUILD_PREBUILT instead!))
 endef
 unique_product_copy_files_destinations :=
 $(foreach cf,$(PRODUCT_COPY_FILES), \
@@ -627,7 +629,12 @@ ifeq (,$(filter true, $(TARGET_NO_KERNEL) $(TARGET_NO_RECOVERY) $(BUILD_TINY_AND
 
 INSTALLED_RECOVERYIMAGE_TARGET := $(PRODUCT_OUT)/recovery.img
 
+#recovery_initrc := $(call include-path-for, recovery)/etc/init.rc
+ifneq ($(BOARD_USE_PRIV_RECOVERY_RC),)
+recovery_initrc := $(BOARD_USE_PRIV_RECOVERY_RC)
+else
 recovery_initrc := $(call include-path-for, recovery)/etc/init.rc
+endif
 recovery_kernel := $(INSTALLED_KERNEL_TARGET) # same as a non-recovery system
 recovery_ramdisk := $(PRODUCT_OUT)/ramdisk-recovery.img
 recovery_build_prop := $(INSTALLED_BUILD_PROP_TARGET)
@@ -1156,6 +1163,31 @@ $(INTERNAL_OTA_PACKAGE_TARGET): $(BUILT_TARGET_FILES_PACKAGE) $(OTATOOLS)
 
 .PHONY: otapackage
 otapackage: $(INTERNAL_OTA_PACKAGE_TARGET)
+
+
+# -----------------------------------------------------------------
+# OTA update package from old_target_files.zip
+
+name := $(TARGET_PRODUCT)
+ifeq ($(TARGET_BUILD_TYPE),debug)
+  name := $(name)_debug
+endif
+name := $(name)-ota-$(FILE_NAME_TAG)-inc
+
+INTERNAL_OTA_PACKAGE_TARGET_INC := $(PRODUCT_OUT)/$(name).zip
+
+$(INTERNAL_OTA_PACKAGE_TARGET_INC): KEY_CERT_PAIR := $(DEFAULT_KEY_CERT_PAIR)
+
+$(INTERNAL_OTA_PACKAGE_TARGET_INC): $(BUILT_TARGET_FILES_PACKAGE) $(OTATOOLS)
+	@echo "Package OTA: $@"
+	$(hide) ./build/tools/releasetools/ota_from_target_files -v \
+	   -p $(HOST_OUT) \
+           -k $(KEY_CERT_PAIR) \
+			-i ./old_target_files.zip \
+           $(BUILT_TARGET_FILES_PACKAGE) $@
+
+.PHONY: otapackage_inc
+otapackage_inc: $(INTERNAL_OTA_PACKAGE_TARGET_INC)
 
 # -----------------------------------------------------------------
 # The update package

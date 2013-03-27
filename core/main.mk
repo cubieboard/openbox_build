@@ -868,6 +868,9 @@ modules:
 	@echo "$(call module-names-for-tag-list,$(ALL_MODULE_TAGS))" | \
 	      tr -s ' ' '\n' | sort -u | $(COLUMN)
 
+.PHONY: image-nodeps
+image-nodep: systemimage-nodeps bootimage
+
 .PHONY: showcommands
 showcommands:
 	@echo >/dev/null

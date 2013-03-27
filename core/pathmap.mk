@@ -87,10 +87,14 @@ FRAMEWORKS_BASE_SUBDIRS := \
 	    opengl \
 	    sax \
 	    telephony \
+		ethernet \
 	    wifi \
 	    keystore \
 	    icu4j \
 	    voip \
+	    samba \
+	    swextend/securefile \
+	    swextend/isomountmanager \
 	 )
 
 #
